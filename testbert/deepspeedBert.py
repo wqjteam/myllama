@@ -1,7 +1,7 @@
 from deepspeed.ops.transformer import DeepSpeedTransformerConfig,DeepSpeedTransformerLayer
 from transformers import AutoModelForSequenceClassification
 import argparse
-
+from transformers import Trainer
 
 
 parser = argparse.ArgumentParser(description='姓名')
