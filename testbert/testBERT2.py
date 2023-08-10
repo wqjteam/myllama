@@ -6,7 +6,7 @@ import torch
 import torch.utils.data as Data
 from datasets import load_dataset
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, DataCollatorWithPadding
-
+import megatron.mpu as mpu
 
 
 
