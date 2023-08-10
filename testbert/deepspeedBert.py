@@ -1,14 +1,16 @@
-from deepspeed.ops.transformer import DeepSpeedTransformerConfig,DeepSpeedTransformerLayer
-from transformers import AutoModelForSequenceClassification
+import evaluate
+import numpy as np
+from deepspeed.ops.transformer import DeepSpeedTransformerConfig, DeepSpeedTransformerLayer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, TrainingArguments, DataCollatorWithPadding
 import argparse
 from transformers import Trainer
-
+from datasets import load_dataset
 
 parser = argparse.ArgumentParser(description='姓名')
-parser.add_argument('--model_name_or_path', type=str,help='姓')
-parser.add_argument('--from_tf', type=str,help='名')
+parser.add_argument('--model_name_or_path', type=str, help='姓')
+parser.add_argument('--from_tf', type=str, help='名')
 model_args = parser.parse_args()
-config={}
+config = {}
 
 
 # deepspeed --num_gpus=1 run_glue.py \
@@ -23,7 +25,6 @@ config={}
 #   --overwrite_output_dir \
 #   --fp16 \
 #   --deepspeed ds_config.json
-
 
 
 def gen_ds_bert_config(training_args, config):
@@ -45,21 +46,58 @@ def gen_ds_bert_config(training_args, config):
     )
     return bert_config
 
-#模型替换
+
+# 模型替换
 def inject_ds_enc_layer(model, training_args, config):
     for i in range(config.num_hidden_layers):
         bert_config = gen_ds_bert_config(training_args, config)
         model.bert.encoder.layer[i] = DeepSpeedTransformerLayer(bert_config)
 
 
-model = AutoModelForSequenceClassification.from_pretrained(
-    model_args.model_name_or_path,
-    from_tf=bool(".ckpt" in model_args.model_name_or_path),
-    config=config,
-    cache_dir=model_args.cache_dir,
-    revision=model_args.model_revision,
-    use_auth_token=True if model_args.use_auth_token else None,
-)
+# model = AutoModelForSequenceClassification.from_pretrained(
+#     model_args.model_name_or_path,
+#     from_tf=bool(".ckpt" in model_args.model_name_or_path),
+#     config=config,
+#     cache_dir=model_args.cache_dir,
+#     revision=model_args.model_revision,
+#     use_auth_token=True if model_args.use_auth_token else None,
+# )
 # 在model定义后立刻替换
-inject_ds_enc_layer(model, training_args, config)
+# inject_ds_enc_layer(model, training_args, config)
 
+
+model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+
+raw_datasets = load_dataset("glue", "mrpc")
+
+
+def tokenize_function(example):
+    return tokenizer(example["sentence1"], example["sentence2"], truncation=True)
+
+
+tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+
+training_args = TrainingArguments("test-trainer")
+
+
+def compute_metrics(eval_preds):
+    metric = evaluate.load("gule", "mrpc")
+    logits, labels = eval_preds
+    predictions = np.argmax(logits, axis=-1)
+    return metric.compute(predictions=predictions, references=labels)
+
+
+trainer = Trainer(
+    model,
+    training_args,
+    train_dataset=tokenized_datasets["train"],
+    eval_dataset=tokenized_datasets["validation"],
+    data_collator=data_collator,
+    tokenizer=tokenizer,
+    compute_metrics=compute_metrics,
+)
+
+
+trainer.train()
