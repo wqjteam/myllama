@@ -1,4 +1,5 @@
 import argparse
+import os
 from functools import partial
 
 import deepspeed
@@ -7,7 +8,7 @@ import torch.utils.data as Data
 from datasets import load_dataset
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, DataCollatorWithPadding
 
-
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 parser = argparse.ArgumentParser(add_help=True,description='lijing')
