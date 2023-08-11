@@ -17,6 +17,7 @@ parser.add_argument('--batch_size',default=4, type=int, help='lujing')
 parser.add_argument('--num_epochs',default=10, type=int, help='lujing')
 parser.add_argument('--save_interval',default=100, type=int, help='lujing')
 parser.add_argument('--save_dir',default="./save_model/", type=str, help='lujing')
+parser.add_argument('--local_rank',default=0, type=int, help='lujing')
 args = parser.parse_args()
 
 
