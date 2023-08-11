@@ -11,20 +11,28 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, Data
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
-parser = argparse.ArgumentParser(add_help=True,description='lijing')
-parser.add_argument('--model_name_or_path', default="bert-base-uncased",type=str, help='lujing')
-parser.add_argument('--batch_size',default=4, type=int, help='lujing')
-parser.add_argument('--num_epochs',default=10, type=int, help='lujing')
-parser.add_argument('--save_interval',default=100, type=int, help='lujing')
-parser.add_argument('--save_dir',default="./save_model/", type=str, help='lujing')
-parser.add_argument('--local_rank',default=0, type=int, help='lujing')
-parser.add_argument('--deepspeed',default="", type=str, help='lujing')
-parser.add_argument('--deepspeed_config',default="", type=str, help='lujing')
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(add_help=True,description='lijing')
+# parser.add_argument('--model_name_or_path', default="bert-base-uncased",type=str, help='lujing')
+# parser.add_argument('--batch_size',default=4, type=int, help='lujing')
+# parser.add_argument('--num_epochs',default=10, type=int, help='lujing')
+# parser.add_argument('--save_interval',default=100, type=int, help='lujing')
+# parser.add_argument('--save_dir',default="./save_model/", type=str, help='lujing')
+# parser.add_argument('--local_rank',default=0, type=int, help='lujing')
+# parser.add_argument('--deepspeed',default="", type=str, help='lujing')
+# parser.add_argument('--deepspeed_config',default="", type=str, help='lujing')
+# args = parser.parse_args()
+args={}
+args["batch_size"]=4
+args["num_epochs"]=10
+args["save_interval"]=100
+args["save_dir"]="./save_model/"
+args["model_name_or_path"]="bert-base-uncased"
 
 
-transformersmodel=AutoModelForSequenceClassification.from_pretrained(args.model_name_or_path, num_labels=2)
-tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+# transformersmodel=AutoModelForSequenceClassification.from_pretrained(args.model_name_or_path, num_labels=2)
+# tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+transformersmodel=AutoModelForSequenceClassification.from_pretrained(args.get("model_name_or_path"), num_labels=2)
+tokenizer = AutoTokenizer.from_pretrained(args.get("model_name_or_path"))
 raw_datasets = load_dataset("glue", "mrpc")
 
 def tokenize_function(example):
@@ -55,7 +63,7 @@ dev_dataloader = Data.DataLoader(
 # _, client_sd = model.load_checkpoint(args.load_dir, args.ckpt_id)
 # step = client_sd['step']
 
-for epoch in range(args.num_epochs):
+for epoch in range(args.get("num_epochs")):
     for step,batch in enumerate(train_dataloader):
         inputs, labels = batch
         loss = model(inputs, labels)
@@ -63,11 +71,11 @@ for epoch in range(args.num_epochs):
         optimizer.step()
 
         # save checkpoint
-        if step % args.save_interval:
+        if step % args.get("save_interval"):
             # client_sd['step'] = step
             ckpt_id = loss.item()
             # model.save_checkpoint(args.save_dir, ckpt_id, client_sd=client_sd)
-            model.save_checkpoint(args.save_dir, ckpt_id)
+            model.save_checkpoint(args.get("save_dir"), ckpt_id)
 
 
 # _, client_sd = model_engine.load_checkpoint(args.load_dir, args.ckpt_id)
