@@ -94,3 +94,5 @@ ds_engine = deepspeed.init_inference(model,
                                      replace_with_kernel_inject=True)
 model = ds_engine.module
 output = model('Input String')
+
+# eepspeed testbert/testBERT2.py --deepspeed_config ds_config.json
